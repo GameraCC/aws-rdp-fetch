@@ -105,38 +105,16 @@ const SendUploadRDP = (uploadCommand) =>
 			return
 		}
 
-		// Not necessary, but helps out
-		await mouse.setPosition(new Point(256, 256))
-		await new Promise((resolve) => setTimeout(resolve, 100))
-		await clipboard.setContent(uploadCommand) // Copy and paste the upload command initially
-		await new Promise((resolve) => setTimeout(resolve, 100))
-
 		for (const handle of handles) {
 			// await new Promise((resolve) => setTimeout(resolve, 2500))
 			console.log(`[STATUS] [Handle ${handle}] Focusing handle`)
 
-			// Focus the shell process
 			await SetFocusToHandle(handle)
 			await new Promise((resolve) => setTimeout(resolve, 100))
 
-			console.log(`[STATUS] [Handle ${handle}] Fullscreening shell`)
-
-			await keyboard.type(Key.F11) // Full screen the focused shell
-			await new Promise((resolve) => setTimeout(resolve, 250))
-			await mouse.setPosition(new Point(256, 256))
-			await new Promise((resolve) => setTimeout(resolve, 250))
-
 			console.log(`[STATUS] [Handle ${handle}] Injecting upload command`)
-
-			await clipboard.setContent(uploadCommand) // Copy and paste the upload command
-			await new Promise((resolve) => setTimeout(resolve, 100))
-			await mouse.click(Button.RIGHT)
-			await new Promise((resolve) => setTimeout(resolve, 100))
+			await keyboard.type(uploadCommand)
 			await keyboard.type(Key.Enter)
-			await new Promise((resolve) => setTimeout(resolve, 100))
-			await keyboard.type(Key.F11) // Unfullscreen screen the focused shell
-
-			await new Promise((resolve) => setTimeout(resolve, 100))
 		}
 
 		return res()
@@ -238,24 +216,25 @@ class RDP {
                         username:s:${this.username}
                         password 51:b:${encrypted_password}
                         remoteapplicationmode:i:1
-                        disableremoteappcapscheck:i:1
+                        disableremoteappcapscheck:i:0
                         prompt for credentials on client:i:0
                         alternate shell:s:rdpinit.exe
                         remoteapplicationname:s:Command Prompt
                         remoteapplicationprogram:s:C:\\Windows\\System32\\cmd.exe
-                        remoteapplicationcmdline:s:
-                        redirectclipboard:i:1
+                        redirectclipboard:i:0
+                        encode redirected video capture:i:0
                         redirectposdevices:i:0
-                        redirectprinters:i:1
-                        redirectcomports:i:1
-                        redirectsmartcards:i:1
+                        redirectprinters:i:0
+                        redirectcomports:i:0
+                        redirectsmartcards:i:0
+                        redirectwebauthn:i:0
                         devicestoredirect:s:*
                         drivestoredirect:s:*
-                        redirectdrives:i:1
-                        session bpp:i:32
-                        span monitors:i:1
-                        use multimon:i:1
-                        allow font smoothing:i:1
+                        redirectdrives:i:0
+                        session bpp:i:8
+                        span monitors:i:0
+                        use multimon:i:0
+                        allow font smoothing:i:0
                     `
 					return res()
 				}
@@ -317,7 +296,8 @@ class RDP {
 				// Launch the RDP process
 				child.exec(`"${__dirname}\\rdps\\${this.ip}.rdp"`)
 
-				return res()
+				// RDP initialization delay
+				setTimeout(res, config.rdp_delay)
 			} catch (err) {
 				console.error(`[ERROR] [${this.uuid}] [${this.prefix}] [${this.ip}] Error Initializing RDP, err:`, err)
 				return res()
@@ -362,11 +342,11 @@ const main = async (_) => {
 		promises.push(rdp.start())
 	}
 
-	// Initialize all RDPs
+	/**
+	 * Initialize all RDPs (which also contains a delay for resolving the promise, if the RDPs are not initialized within the delay time-frame,
+	 * the function returns and terminates the child process attempting to initalize the RDP)
+	 */
 	await Promise.all(promises)
-
-	// RDP initialization delay
-	await new Promise((resolve) => setTimeout(resolve, config.rdp_delay))
 
 	const uploadCommand = GenerateUploadCommand({
 		upload_bucket_url: config.upload_bucket_url,
@@ -380,19 +360,22 @@ const main = async (_) => {
 	await SendUploadRDP(uploadCommand)
 
 	// RDP termination delay
+	console.log(
+		`[STATUS] [${uuid}] [${config.prefix}] Waiting ${config.terminate_delay}ms prior to terminating active RDP processes`
+	)
 	await new Promise((resolve) => setTimeout(resolve, config.terminate_delay))
 
 	// Kill remaining RDP processes
 	await KillRDPProcesses()
 
 	// Fetch data from S3
+	console.log(`[STATUS] [${uuid}] [${config.prefix}] Fetching data from S3`)
 	const fetchProcess = child.exec('npm run fetch')
 	await new Promise((resolve) => {
 		fetchProcess.on('close', resolve)
 	})
 
 	// Clear the S3 bucket upon completion of parsing
-
 	await ClearS3Bucket({ uuid, prefix: config.prefix })
 
 	// Handle parsing of data from /raw

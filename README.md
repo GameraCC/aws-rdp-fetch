@@ -94,3 +94,4 @@ AWS Lambda & S3 are used as file-hosts. Files are uploaded to these file-hosts t
 ## Notes
 
 -   Beware of certificate warnings upon first launch of RDPs, check mark the warnings, and make sure they're not re-emitted.
+-   If the RDP delay is not long enough, the RDP windows will terminate upon the initialization function being returned; ensure the delay is long enough.
