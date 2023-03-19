@@ -44,7 +44,7 @@ const DeleteFolder = ({ uuid, prefix }) =>
 
 			const response = await client.send(listCommand)
 
-			if (!response.Contents.length) return
+			if (!response?.Contents?.length) return res()
 
 			const deleteCommand = new DeleteObjectsCommand({
 				Bucket: BUCKET_NAME,

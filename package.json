@@ -14,12 +14,10 @@
   },
   "dependencies": {
     "@nut-tree/nut-js": "^3.1.1",
+    "ffi-napi": "^4.0.3",
     "find-process": "^1.4.7",
     "is-port-reachable": "^4.0.0",
     "json2csv": "^6.0.0-alpha.2",
-    "node-key-sender": "^1.0.11",
-    "node-process-windows": "^0.0.2",
-    "uuid": "^9.0.0",
-    "window-control": "./lib/window-control"
+    "uuid": "^9.0.0"
   }
 }
