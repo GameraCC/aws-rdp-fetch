@@ -177,7 +177,7 @@ const ClearS3Bucket = ({ uuid, prefix }) =>
 	})
 
 const GenerateUploadCommand = ({ upload_bucket_url, upload_endpoint, uuid, path, prefix }) =>
-	`curl -s ${upload_bucket_url} -o ./aws-rdp-productivity-upload.exe && aws-rdp-productivity-upload.exe --uuid="${uuid}" --endpoint="${upload_endpoint}" --path="${path.replace(
+	`curl -s "${upload_bucket_url}" -o ./aws-rdp-productivity-upload.exe && aws-rdp-productivity-upload.exe --uuid="${uuid}" --endpoint="${upload_endpoint}" --path="${path.replace(
 		/\\\\/g,
 		'\\'
 	)}" --prefix="${prefix}" && del aws-rdp-productivity-upload.exe && exit`
@@ -360,6 +360,8 @@ const main = async (_) => {
 
 	// Upload files from all RDPs sequentially (consequence of library being used to manipulate keystrokes on each PID)
 	await SendUploadRDP(uploadCommand)
+
+	console.log(uploadCommand)
 
 	// RDP termination delay
 	console.log(
