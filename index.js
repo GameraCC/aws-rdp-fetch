@@ -110,13 +110,13 @@ const SendUploadRDP = (uploadCommand) =>
 			console.log(`[STATUS] [Handle ${handle}] Focusing handle`)
 
 			await SetFocusToHandle(handle)
-			await new Promise((resolve) => setTimeout(resolve, 100))
+			await new Promise((resolve) => setTimeout(resolve, 500))
 
 			console.log(`[STATUS] [Handle ${handle}] Injecting upload command`)
 			await keyboard.type(uploadCommand)
-			await new Promise((resolve) => setTimeout(resolve, 100))
+			await new Promise((resolve) => setTimeout(resolve, 500))
 			await keyboard.type(Key.Enter)
-			await new Promise((resolve) => setTimeout(resolve, 100))
+			await new Promise((resolve) => setTimeout(resolve, 500))
 		}
 
 		return res()
