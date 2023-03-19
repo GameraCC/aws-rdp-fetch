@@ -1,0 +1,17 @@
+{
+  "name": "binary",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "npm ci && node compile.js",
+    "host": "aws s3 cp ./bin/aws-rdp-productivity-upload.exe s3://aws-rdp-productivity-backend-v1-upload-bucket --acl public-read"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "command-line-args": "^5.2.1",
+    "nexe": "^4.0.0-rc.2",
+    "request": "^2.88.2"
+  }
+}

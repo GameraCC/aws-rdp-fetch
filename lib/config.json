@@ -1,0 +1,14 @@
+{
+    "path": "C:\\Users\\Administrator\\Desktop\\test-directory",
+    "prefix": "test",
+    "username": "Administrator",
+    "password": "ABC",
+    "rdp_delay": 15000,
+    "terminate_delay": 20000,
+    "instances": [
+        "192.168.1.1"
+    ],
+    "upload_endpoint": "https://abc.execute-api.us-east-1.amazonaws.com/upload",
+    "clear_endpoint": "https://abc.execute-api.us-east-1.amazonaws.com/clear",
+    "upload_bucket_url": "https://aws-rdp-productivity-backend-v1-upload-bucket.s3.amazonaws.com/aws-rdp-productivity-upload.exe"
+}

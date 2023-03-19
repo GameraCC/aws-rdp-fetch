@@ -1,0 +1,25 @@
+{
+  "name": "aws-prod",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "npm ci && node index.js",
+    "fetch": "aws s3 sync s3://aws-rdp-productivity-backend-v1-upload-bucket ./raw --exclude \"*.exe\""
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "request": "^2.88.2"
+  },
+  "dependencies": {
+    "@nut-tree/nut-js": "^3.1.1",
+    "find-process": "^1.4.7",
+    "is-port-reachable": "^4.0.0",
+    "json2csv": "^6.0.0-alpha.2",
+    "node-key-sender": "^1.0.11",
+    "node-process-windows": "^0.0.2",
+    "uuid": "^9.0.0",
+    "window-control": "./lib/window-control"
+  }
+}

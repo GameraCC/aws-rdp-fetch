@@ -1,0 +1,51 @@
+service: aws-rdp-productivity-backend-v1
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  stage: dev
+  region: us-east-1
+  runtime: nodejs16.x
+  timeout: 30
+  iam:
+    role:
+      statements:
+        - Effect: 'Allow'
+          Action:
+            - s3:ListBucket
+          Resource: !GetAtt RdpProductivityUploadBucket.Arn
+        - Effect: 'Allow'
+          Action:
+            - s3:PutObject
+            - s3:PutObjectAcl
+            - s3:DeleteObject
+          Resource:
+            !Join
+            - '/'
+            - - !GetAtt RdpProductivityUploadBucket.Arn
+              - '*'
+  environment:
+    BUCKET_NAME: !Ref RdpProductivityUploadBucket
+    BUCKET_REGION: ${self:provider.region}
+
+functions:
+  upload:
+    handler: ./handlers/upload.handler
+    events:
+      - httpApi:
+          method: POST
+          path: /upload
+  
+  clear:
+    handler: ./handlers/clear.handler
+    events:
+      - httpApi:
+          method: POST
+          path: /clear
+          
+resources:
+  Resources:
+    RdpProductivityUploadBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:service}-upload-bucket
