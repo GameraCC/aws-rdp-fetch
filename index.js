@@ -30,6 +30,7 @@ const SendUploadRDP = (uploadCommand) =>
 
 		if (!results.length) {
 			console.log('[ERROR] No RDP shells found')
+			return
 		}
 
 		for (const result of results) {
