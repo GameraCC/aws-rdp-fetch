@@ -11,7 +11,7 @@ const HandleParsing = ({ uuid, prefix }) =>
 			const file = fs.readFileSync(`./raw/${uuid}-${prefix}/${filename}`, { encoding: 'utf-8' })
 			const input = JSON.parse(file)
 
-			data.push(input)
+			data.push(...input)
 		})
 
 		// Write output JSON data
