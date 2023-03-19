@@ -152,8 +152,6 @@ const ClearS3Bucket = ({ uuid, prefix }) =>
 				prefix
 			}
 
-			console.log(data)
-
 			request(
 				{
 					url: config.clear_endpoint,
