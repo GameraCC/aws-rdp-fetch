@@ -57,6 +57,8 @@ OR
 
 3. The program will assume the URL for the hosted binary is `https://aws-rdp-productivity-backend-v1-upload-bucket.s3.amazonaws.com/aws-rdp-productivity-upload.exe`, although this can be changed in the config, if necessary. If you changed the service-name, make sure the URL for this hosted-binary is updated with the correct service-name.
 
+4. If you receive build errors, try installing NASM or VSCode build tools, more info can be found on the NEXE repository
+
 ## Usage
 
 1. Configure /lib/config.json with the following properties
