@@ -114,7 +114,9 @@ const SendUploadRDP = (uploadCommand) =>
 
 			console.log(`[STATUS] [Handle ${handle}] Injecting upload command`)
 			await keyboard.type(uploadCommand)
+			await new Promise((resolve) => setTimeout(resolve, 100))
 			await keyboard.type(Key.Enter)
+			await new Promise((resolve) => setTimeout(resolve, 100))
 		}
 
 		return res()
