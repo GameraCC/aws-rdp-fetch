@@ -236,7 +236,7 @@ class RDP {
 				console.log(`[STATUS] [${this.uuid}] [${this.prefix}] [${this.ip}] Initializing RDP`)
 
 				// Launch the RDP process
-				child.exec(`${__dirname}\\rdps\\${this.ip}.rdp`)
+				child.exec(`"${__dirname}\\rdps\\${this.ip}.rdp"`)
 
 				return res()
 			} catch (err) {
