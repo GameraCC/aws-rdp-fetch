@@ -371,6 +371,9 @@ const main = async (_) => {
 	// Fetch data from S3
 	console.log(`[STATUS] [${uuid}] [${config.prefix}] Fetching data from S3`)
 	const fetchProcess = child.exec('npm run fetch')
+	fetchProcess.stdout.on('data', (data) => console.log(data))
+	fetchProcess.stderr.on('data', (data) => console.log(data))
+
 	await new Promise((resolve) => {
 		fetchProcess.on('close', resolve)
 	})
