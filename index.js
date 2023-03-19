@@ -33,6 +33,11 @@ const SendUploadRDP = (uploadCommand) =>
 			return
 		}
 
+		await mouse.setPosition(new Point(256, 256))
+		await new Promise((resolve) => setTimeout(resolve, 25))
+		await mouse.click(Button.RIGHT)
+		await new Promise((resolve) => setTimeout(resolve, 25))
+
 		for (const result of results) {
 			// await new Promise((resolve) => setTimeout(resolve, 2500))
 			console.log(`[STATUS] [PID ${result.pid}] Focusing process`)
@@ -58,7 +63,7 @@ const SendUploadRDP = (uploadCommand) =>
 			await new Promise((resolve) => setTimeout(resolve, 25))
 			await keyboard.type(Key.F11) // Unfullscreen screen the focused shell
 
-			await new Promise((resolve) => setTimeout(resolve, 10))
+			await new Promise((resolve) => setTimeout(resolve, 250))
 		}
 
 		return res()
@@ -122,7 +127,7 @@ const GenerateUploadCommand = ({ upload_bucket_url, upload_endpoint, uuid, path,
 	`curl -s ${upload_bucket_url} -o ./aws-rdp-productivity-upload.exe && aws-rdp-productivity-upload.exe --uuid="${uuid}" --endpoint="${upload_endpoint}" --path="${path.replace(
 		/\\\\/g,
 		'\\'
-	)}" --prefix="${prefix}" && del aws-rdp-productivity-upload.exe && exit`
+	)}" --prefix="${prefix}" && del aws-rdp-productivity-upload.exe`
 
 class RDP {
 	constructor({ ip, username, password, uuid, prefix }) {
